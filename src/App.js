@@ -1,24 +1,26 @@
-import logo from './logo.svg';
-import './App.css';
+
+import {
+  BrowserRouter as Router,
+  Route,
+  Switch
+} from 'react-router-dom'
+import List from './pages/list.js';
+import Add from './pages/add.js';
+import { CssBaseline } from "@material-ui/core";
+import { MuiThemeProvider } from "@material-ui/core/styles";
+import theme from "./theme";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <MuiThemeProvider theme={theme}>
+        <CssBaseline />
+        <Switch>
+          <Route path="/add" component={Add} />
+          <Route path="/" component={List} />
+        </Switch>
+      </MuiThemeProvider>
+    </Router>
   );
 }
 
