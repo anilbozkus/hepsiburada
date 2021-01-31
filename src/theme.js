@@ -47,6 +47,13 @@ theme = {
                 fontSize:30,
                 top:5
             }
+        },
+        MuiPaginationItem:{
+            textPrimary:{
+                '&$selected': {
+                    backgroundColor: '#000'
+                }
+            }
         }
     },
   };

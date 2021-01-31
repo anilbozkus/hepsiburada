@@ -12,6 +12,10 @@ import Select from '@material-ui/core/Select';
 import InputBase from '@material-ui/core/InputBase';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+import RemoveCircleIcon from '@material-ui/icons/RemoveCircle';
+import Dialog from "@material-ui/core/Dialog";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import Pagination from "@material-ui/lab/Pagination";
 
 const useStyles = makeStyles((theme) => ({
     mainContainer: {
@@ -39,8 +43,54 @@ const useStyles = makeStyles((theme) => ({
         border:'1px solid #e2e2e2',
         textAlign:'center',
         borderRadius:4
+    },
+    delete: {
+      padding:10,
+      background:'#e0e0e07a',
+      borderRadius:4,
+      transition:'0.3s',
+      cursor:'pointer'
+
+    },
+    myDialog:{
+      background:'#eae8e4'
     }
 }));
+
+function RemoveDialog(props) {
+  const classes = useStyles();
+  const { onClose, open, links, index, setLinks, page } = props;
+
+  const removeLink = (index, page) => {
+    links.splice(index + ((page-1)*5), 1)
+    setLinks([...links])
+    localStorage.setItem('linksArray', JSON.stringify(links.reverse()));
+  };
+
+  return (
+    <Dialog style={{padding:20}} fullWidth={true} maxWidth="xs" classes={{ paper: classes.myDialog}} onClose={onClose} aria-labelledby="simple-dialog-title" open={open}>
+        <DialogTitle style={{background:'#000', padding:'9px 15px', border:'0.6px solid #fff',marginBottom:30}} id="simple-dialog-title">
+          <Typography variant="h6" style={{color:'#fff'}}>Remove Link</Typography>
+        </DialogTitle>
+        <Grid container justify="center" style={{marginBottom:50}} xs={12}>
+          <Grid container justify="space-between" xs={9}>
+            <Grid item xs={12} style={{textAlign:'center'}}>
+              <Typography align="center" variant="h6" style={{color:'#777777'}}>Do you want to remove: </Typography>
+              <Typography align="center" variant="h5" style={{fontWeight:'bold'}}>{links[index + ((page-1)*5)].name}</Typography>
+            </Grid>
+            <Grid container xs={12} spacing={2} style={{margin:0}}>
+              <Grid item xs={12} md={6}>
+                <Button style={{borderRadius: "50px", padding: "10px 50px",width:'100%',marginTop:20,fontWeight:'bold'}} onClick={() => removeLink(index, page)} variant="containedPrimary">OK</Button>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Button style={{borderRadius: "50px", padding: "10px 50px",width:'100%',marginTop:20,fontWeight:'bold'}} onClick={() => {onClose(null)}} variant="containedPrimary">CANCEL</Button>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Grid>
+    </Dialog>
+  );
+}
 
 function List(props) {
   const classes = useStyles();
@@ -48,7 +98,23 @@ function List(props) {
     order: '',
     name: 'hai',
   });
-  const [links, setLinks] = React.useState(JSON.parse(localStorage.getItem('linksArray')) || []);
+  const [links, setLinks] = React.useState();
+  const itemsPerPage = 5;
+  const [page, setPage] = React.useState(1);
+  const [noOfPages , setNoOfPages] = React.useState();
+
+  
+  React.useEffect(() => {
+    if(!links){
+      setLinks(JSON.parse(localStorage.getItem('linksArray')) && JSON.parse(localStorage.getItem('linksArray')).reverse() || [])
+    }
+    if(links){
+      setNoOfPages(
+        Math.ceil(links.length / itemsPerPage)
+      );
+    }
+  },
+  [links])
 
   const BootstrapInput = withStyles((theme) => ({
     root: {
@@ -91,6 +157,117 @@ function List(props) {
       ...state,
       [name]: event.target.value,
     });
+    if(event.target.value === 'most'){
+      links.sort((a, b) => (a.vote < b.vote) ? 1 : -1)
+      setLinks([...links])
+    }
+    else{
+      links.sort((a, b) => (a.vote > b.vote) ? 1 : -1)
+      setLinks([...links])
+    }
+  };
+
+  const handlePage = (event, value) => {
+    setPage(value);
+  };
+
+  const upVote = (index, page) => {
+    links[index + ((page-1)*5)].vote = links[index + ((page-1)*5)].vote + 1
+    links.sort((a, b) => (a.vote < b.vote) ? 1 : -1)
+    setLinks([...links])
+    localStorage.setItem('linksArray', JSON.stringify(links.reverse()));
+  };
+
+  const downVote = (index, page) => {
+    if(links[index+ ((page-1)*5)].vote !== 0){
+      links[index + ((page-1)*5)].vote = links[index + ((page-1)*5)].vote - 1
+      links.sort((a, b) => (a.vote < b.vote) ? 1 : -1)
+      setLinks([...links])
+      localStorage.setItem('linksArray', JSON.stringify(links.reverse()));
+    }
+  };
+
+  function LinkItem(props) {
+    const { link, index } = props;
+    const [deleteIcon, setDeleteIcon] = React.useState(false);
+    const [remove, setRemove] = React.useState(false);
+
+    return (
+      <Grid
+        onMouseEnter={() => setDeleteIcon(true)}
+        onMouseLeave={() => setDeleteIcon(false)}
+        className={deleteIcon ? classes.delete : ''}
+        container
+        xs={12}
+        style={{ marginTop: 20 }}
+      >
+        <Grid item className={classes.pointGrid}>
+          <Typography variant="h5" style={{ fontWeight: "bold" }}>
+            {link.vote}
+          </Typography>
+          <Typography variant="body1">POINTS</Typography>
+        </Grid>
+        <Grid
+          container
+          xs={8}
+          alignItems="space-between"
+          style={{ padding: "0 10px" }}
+        >
+          <Grid xs={12}>
+            <Grid container justify="space-between">
+              <Typography variant="h6" style={{ fontWeight: "bold" }}>
+                {link.name}
+              </Typography>
+              {deleteIcon && (
+                <RemoveCircleIcon
+                  onClick={() => setRemove(true)}
+                  style={{ fontSize: 25, color: "#ff0000", cursor: "pointer" }}
+                />
+              )}
+            </Grid>
+            <RemoveDialog setLinks={setLinks} index={index} links={links} open={remove} page={page} onClose={() => setRemove(false)}/>
+            <a
+              href={link.url}
+              rel="noreferrer"
+              target="_blank"
+              style={{ padding: 0, textDecoration: "none" }}
+            >
+              <Typography variant="body1" style={{ color: "rgb(181 181 181)" }}>
+                ({link.url})
+              </Typography>
+            </a>
+          </Grid>
+          <Grid container justify="space-between" alignItems="flex-end">
+            <Grid item onClick={() => upVote(index, page)}>
+              <Typography
+                variant="body1"
+                style={{
+                  color: "rgb(181 181 181)",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <ArrowUpwardIcon style={{ marginBottom: -5 }} />
+                Up Vote
+              </Typography>
+            </Grid>
+            <Grid item onClick={() => downVote(index, page)}>
+              <Typography
+                variant="body1"
+                style={{
+                  color: "rgb(181 181 181)",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <ArrowDownwardIcon style={{ marginBottom: -5 }} />
+                Down Vote
+              </Typography>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Grid>
+    );
   };
 
   return (
@@ -135,67 +312,26 @@ function List(props) {
               }}
             >
               <option value=""></option>
-              <option value={10}>Most Voted (Z -> A)</option>
-              <option value={20}>Less Voted (A -> Z)</option>
+              <option value={"most"}>Most Voted (Z from A)</option>
+              <option value={"less"}>Less Voted (A from Z)</option>
             </Select>
           </FormControl>
         </Grid>
         {links &&
-          links.map((link, index) => (
-            <Grid container xs={12} style={{ marginTop: 20 }}>
-              <Grid item className={classes.pointGrid}>
-                <Typography variant="h5" style={{ fontWeight: "bold" }}>
-                  {link.vote}
-                </Typography>
-                <Typography variant="body1">POINTS</Typography>
-              </Grid>
-              <Grid
-                container
-                xs
-                alignItems="space-between"
-                style={{ padding: "0 10px" }}
-              >
-                <Grid xs={12}>
-                  <Typography variant="h6" style={{ fontWeight: "bold" }}>
-                    {link.name}
-                  </Typography>
-                  <a
-                    href={link.url}
-                    rel="noreferrer"
-                    target="_blank"
-                    style={{ padding: 0, textDecoration: "none" }}
-                  >
-                    <Typography
-                      variant="body1"
-                      style={{ color: "rgb(181 181 181)" }}
-                    >
-                      ({link.url})
-                    </Typography>
-                  </a>
-                </Grid>
-                <Grid container justify="space-between" alignItems="flex-end">
-                    <Grid item>
-                        <Typography
-                        variant="body1"
-                        style={{ color: "rgb(181 181 181)", fontWeight:600, cursor:'pointer' }}
-                        >
-                            <ArrowUpwardIcon style={{marginBottom:-5}}/>
-                        Up Vote
-                        </Typography>
-                    </Grid>
-                    <Grid item>
-                        <Typography
-                        variant="body1"
-                        style={{ color: "rgb(181 181 181)", fontWeight:600, cursor:'pointer' }}
-                        >
-                            <ArrowDownwardIcon style={{marginBottom:-5}}/>
-                        Down Vote
-                        </Typography>
-                    </Grid>
-                </Grid>    
-              </Grid>
-            </Grid>
-          ))}
+          links
+            .slice((page - 1) * itemsPerPage, page * itemsPerPage)
+            .map((link, index) => <LinkItem link={link} index={index} page={page} />)}
+        <Pagination
+          style={{margin:'20px 0'}}
+          count={noOfPages}
+          page={page}
+          onChange={handlePage}
+          defaultPage={1}
+          color="primary"
+          size="large"
+          showFirstButton
+          showLastButton
+        />
       </Grid>
     </Grid>
   );
